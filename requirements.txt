@@ -3,3 +3,6 @@
 # Many other dependencies will be installed automatically. 
 
 # Then, you should install flash-attn 2.6.0 from source, and compile with gcc. Note that the gcc version should match your cuda version. For example, for CUDA 12.4, you can use gcc-11.
+
+datasets
+transformers
