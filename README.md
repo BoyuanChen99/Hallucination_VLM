@@ -31,6 +31,14 @@ Caption Hallucination Assessment with Image Relevance (CHAIR) is a benchmark tha
 caption accuracy by comparing mentioned objects against ground-truth labels, with hallucinations defined as objects present in captions but absent from ground truth. Following established protocol, we evaluate on 500 randomly sampled images from MSCOCO_val2014 set, using the prompt "Please help me describe the image in
 detail" with maximum generation length of 512 tokens.
 
+To collect 500 random questions from MSCOCO_val2014, you can use the following command, after setting your own seed:
+```bash
+python chair_extract.py \ 
+    --coco_dir [Your local directory storing MSCOCO_val2014] \
+    --chair_dir [Your local directory to store the CHAIR dataset for output] \
+    --seed [Your seed]
+```
+
 
 
 
