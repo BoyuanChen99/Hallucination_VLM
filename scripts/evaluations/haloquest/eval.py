@@ -45,7 +45,6 @@ def main():
     data_dir = "../../../datasets/haloquest"
     train_df = pd.read_csv(f'{data_dir}/haloquest-train.csv')
     eval_df = pd.read_csv(f'{data_dir}/haloquest-eval.csv')
-    # Choose an LLM for Auto-Eval (you can use different LLMs but will need to specify an API key)
     lm_model = lf.llms.GeminiPro1_5()
 
 

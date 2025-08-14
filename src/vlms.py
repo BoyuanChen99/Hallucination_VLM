@@ -12,10 +12,8 @@ from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 
-
-
-
-### ===== InternVL3-8B =====
+### ========== Model Classes ===========
+# ===== InternVL3-8B =====
 # This code is adapted from the official team's code on huggingface: https://huggingface.co/OpenGVLab/InternVL3-8B
 class InternVL3:
     def __init__(self, torch_dtype=torch.bfloat16, load_in_8bit=False, use_flash_attn=True):
@@ -37,6 +35,7 @@ class InternVL3:
         self.tokenizer = AutoTokenizer.from_pretrained(self.path, trust_remote_code=True, use_fast=False)
         self.device = self.model.device
 
+    ### Helper Functions
     def build_transform(self, input_size):
         MEAN, STD = self.IMAGENET_MEAN, self.IMAGENET_STD
         transform = T.Compose([
@@ -163,3 +162,10 @@ class InternVL3:
         pixel_values = torch.cat(pixel_values_list)
         return pixel_values, num_patches_list
 
+
+
+### ========== 
+def init_vlm(model_name):
+    if "internvl3" in model_name.lower():
+        return InternVL3()
+    raise ValueError(f"Unknown model name: {model_name}")
