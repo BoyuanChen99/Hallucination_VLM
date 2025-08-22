@@ -2,11 +2,9 @@
 This repo stores the major code and results for the paper "..."
 
 ## Getting Datasets
-The following benchmarks/datasets are used in this project. Each section also provides a brief instruction on how to download the datasets.
+The following benchmarks/datasets are used in this project. Each section also provides a brief instruction on how to download the datasets. We put ALL dataset folders in a directory \textbf{on the top level}, named `data`. 
 
-A few clarifications before you start:
-
-The datasets of CV are very messy and ill-managed, compared to other areas in ML. One reason is that it has a relatively long history of research even before ML. Consequently, it takes a decent amount of time to get everything in shape, and thus the purpose of this tutorial is to help you save this unnecessarily torturing experience :) 
+FYI, the datasets/benchmarks of CV are relatively messy and under-organized compared to other areas in ML. One reason is that it has a relatively long history of research even before ML, so a lot of datasets we still use nowadays were developed a long while ago. Consequently, it takes a decent amount of time to get everything in shape, and thus the purpose of this documentation is to help you save this unnecessarily torturing experience :) 
 
 MSCOCO and COCO are the same thing. In research we usually write the former, emphasizing that the dataset comes from Microsoft, while the latter is more commonly used in codebases/filenames. The rest of the tutorial will use MSCOCO.
 
@@ -26,7 +24,6 @@ wget http://images.cocodataset.org/zips/val2014.zip
 
 
 ### CHAIR (MSCOCO)
-
 Caption Hallucination Assessment with Image Relevance (CHAIR) is a benchmark that assesses
 caption accuracy by comparing mentioned objects against ground-truth labels, with hallucinations defined as objects present in captions but absent from ground truth. Following established protocol, we evaluate on 500 randomly sampled images from MSCOCO_val2014 set, using the prompt "Please help me describe the image in
 detail" with maximum generation length of 512 tokens.
@@ -41,10 +38,19 @@ python chair_extract.py \
 
 
 
+### HaloQuest
+The work is published via ECCV 2024 by Google. It uses self-generated original images from Midjourney to ask trickier questions. To prepare this dataset, clone their repo and follow their instructions. \
+[paper](https://dl.acm.org/doi/10.1007/978-3-031-72980-5_17), [code](https://github.com/google/haloquest)
 
-LLaVA-Bench
 
-MME
+
+### LLaVA-Bench
+
+### MME
+
+
+
+
 
 ## Running Models
 This work implements the most-often experimented VLMs: LLaVA-v1.5, LLaVA-NEXT (aka. LLaVA-v1.6), InstructBLIP, MiniGPT-4. We also implemented two latest sota VLMs: Qwen-2.5-VL, InternVL-3. 

@@ -12,16 +12,28 @@ from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 
+
+default_response = "[No response generated]"
+
 ### ========== Model Classes ===========
+# Abstract class of all VLMs
+class VLM:
+    def __init__(self):
+        pass
+
+    def infer(self, *args):
+        raise NotImplementedError
+
+
 # ===== InternVL3-8B =====
 # This code is adapted from the official team's code on huggingface: https://huggingface.co/OpenGVLab/InternVL3-8B
-class InternVL3:
-    def __init__(self, torch_dtype=torch.bfloat16, load_in_8bit=False, use_flash_attn=True):
+class InternVL3(VLM):
+    ### ========== Initialization ========== ###
+    def __init__(self, model='OpenGVLab/InternVL3-8B', torch_dtype=torch.bfloat16, load_in_8bit=False, use_flash_attn=True):
         # Note that the image dimension must be fixed. The original code uses Imagenet settings by default. 
         self.IMAGENET_MEAN = (0.485, 0.456, 0.406)
         self.IMAGENET_STD = (0.229, 0.224, 0.225)
-        # Initialize model and tokenizer
-        self.path = 'OpenGVLab/InternVL3-8B'
+        self.path = model
         self.device_map = self.split_model(self.path)
         self.model = AutoModel.from_pretrained(
                         self.path,
@@ -32,10 +44,14 @@ class InternVL3:
                         trust_remote_code=True,
                         device_map=self.device_map
                     ).eval()
-        self.tokenizer = AutoTokenizer.from_pretrained(self.path, trust_remote_code=True, use_fast=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+                        self.path, 
+                        trust_remote_code=True, 
+                        use_fast=False
+                    )
         self.device = self.model.device
 
-    ### Helper Functions
+    ### ========== Helper functions ========== ###
     def build_transform(self, input_size):
         MEAN, STD = self.IMAGENET_MEAN, self.IMAGENET_STD
         transform = T.Compose([
@@ -162,6 +178,18 @@ class InternVL3:
         pixel_values = torch.cat(pixel_values_list)
         return pixel_values, num_patches_list
 
+    def infer(self, prompt, image_path=None, video=None, max_new_tokens=512, temperature=0.0, multi_rounds=False):
+        response = default_response
+        if video is None and image_path is not None and not multi_rounds:
+            pixel_values = self.load_image(image_path, max_num=12).to(torch.bfloat16).to(self.device)
+            question = f"<image>\n{prompt}"
+            if temperature > 0:
+                generation_config = dict(max_new_tokens=max_new_tokens, do_sample=True, temperature=temperature)
+            else:
+                generation_config = dict(max_new_tokens=max_new_tokens, do_sample=False)
+            # Run the infer
+            response = self.model.chat(self.tokenizer, pixel_values, question, generation_config)
+        return response
 
 
 ### ========== 
