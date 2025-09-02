@@ -97,7 +97,7 @@ def download_with_wget(url: str, out_path: str, rate_limit: str = "200k") -> boo
 
 
 
-def load_dataframe(dataset_name, data_dir="../../../data"):
+def load_dataframe(dataset_name, data_dir="../../../data", subset=None, subsplit=None):
     dataset_name = dataset_name.lower()
     if "haloquest" in dataset_name and "eval" in dataset_name:
         dataset_dir = os.path.join(data_dir, "haloquest")
@@ -122,10 +122,33 @@ def load_dataframe(dataset_name, data_dir="../../../data"):
         cols_to_remove = [c for c in ["Index", "index"] if c in df.columns]
         df = df.drop(columns=cols_to_remove)
     elif "chair" in dataset_name:
-        col_prompt = "question"
-        col_image = "image_name"
-        image_dir = os.path.join(data_dir, "chair/images")
+        json_file = os.path.join(data_dir, "chair/chair_1994.json")
+        image_dir = os.path.join(data_dir, "coco/val2014")
+        # Create an empty dataframe
+        df = pd.DataFrame()
+        with open(json_file, "r") as f:
+            for line in f:
+                json_data = json.loads(line)
+                if df.empty:
+                    df = pd.json_normalize(json_data)
+                else:
+                    df = pd.concat([df, pd.json_normalize(json_data)], ignore_index=True)
+        col_prompt = "text"
+        col_image = "image"
+    elif "pope" in dataset_name:
+        questions = [json.loads(q) for q in open(f"{data_dir}/pope/{subset}/{subset}_pope_{subsplit}.json", "r")]
+        df = pd.json_normalize(questions)
+        col_prompt = "text"
+        col_image = "image"
+        image_dir = os.path.join(data_dir, "coco", "val2014")
     return df, col_prompt, col_image, image_dir
+
+
+def process_response(response, benchmark):
+    if "pope" in benchmark:
+        response = ''.join(c for c in response if c.isalpha() or c.isspace())
+        response = response.lower()
+    return response
 
 
 def concatenate_response(response, row, df_output, col_image):
@@ -141,7 +164,7 @@ def concatenate_response(response, row, df_output, col_image):
     df_output = df_output.drop(columns=[c for c in NEVER_COLS if c in df_output.columns], errors="ignore")
     # Add response
     row = row.copy()
-    row["response"] = response
+    row["response"] = response.replace("\n", "\\n")
     if len(df_output) == 0:
         # start counters
         row["idx_image"] = 0

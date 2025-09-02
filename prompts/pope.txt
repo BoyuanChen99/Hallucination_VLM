@@ -1,0 +1,1 @@
+Write a one-word response, "yes" or "no", without anything else to the following question. No capitalize and no period or any other marks (respond "yes" insead of "Yes."). The question is: {original_prompt}
