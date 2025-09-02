@@ -1,5 +1,6 @@
+from logging import info
 import os
-from PIL import Image, ImageTk   # ← add `Image`
+from PIL import Image, ImageTk
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -85,28 +86,49 @@ class ImageViewer(tk.Tk):
                 self.correctness_label.config(text="WRONG", fg="red")
 
         self.info_text.delete("1.0", tk.END)
-        answer_string = f"Answer (Label): {info['answer']}\n" if self.display_answer else ""
+        answer_string = f"Label: {info['answer']}\n" if self.display_answer else ""
 
-        self.info_text.insert(tk.END, f"{info['prompt']}\n\n")
-        self.info_text.insert(tk.END, f"{info['model_output']}\n\n", "bold")
+        # Prompt
+        self.info_text.insert(tk.END, f"{info['prompt']}\n")
+
+        # VLM Output
+        self.info_text.insert(tk.END, "VLM Output: ")
+        start_out = self.info_text.index(tk.INSERT)
+
+        model_out_raw = str(info['model_output']).strip()
+        model_out_norm = model_out_raw.lower()
+        model_out_disp = model_out_raw.upper() if model_out_norm in ("yes", "no") else model_out_raw
+
+        self.info_text.insert(tk.END, f"{model_out_disp}\n", "bold")
+        end_out = self.info_text.index(tk.INSERT)
+
+        # Label (if shown)
+        if self.display_answer:
+            self.info_text.insert(tk.END, "Label: ")
+            start_lab = self.info_text.index(tk.INSERT)
+
+            ans_raw = str(info['answer']).strip()
+            ans_norm = ans_raw.lower()
+            ans_disp = ans_raw.upper() if ans_norm in ("yes", "no") else ans_raw
+
+            self.info_text.insert(tk.END, f"{ans_disp}\n")
+            end_lab = self.info_text.index(tk.INSERT)
+
+        # The rest of the info
         self.info_text.insert(tk.END,
-            f"{answer_string}"
-            f"Image File: {info['image_file']}\n"
+            f"\nImage File: {info['image_file']}\n"
             f"Question ID: {info['question_id']}\n"
             f"Model ID: {info['model_id']}\n"
         )
 
+        # Apply color tags only to the exact spans if they are YES/NO
         if self.display_correctness:
-            for tag_text, tag_name in [("yes", "yes"), ("no", "no")]:
-                start = "1.0"
-                while True:
-                    pos = self.info_text.search(tag_text, start, tk.END, nocase=True)
-                    if not pos:
-                        break
-                    end = f"{pos}+{len(tag_text)}c"
-                    self.info_text.delete(pos, end)
-                    self.info_text.insert(pos, tag_text.upper(), tag_name)
-                    start = f"{pos}+{len(tag_text)}c"
+            if model_out_norm in ("yes", "no"):
+                self.info_text.tag_add(model_out_norm, start_out, f"{start_out}+{len(model_out_disp)}c")
+            if self.display_answer and ans_norm in ("yes", "no"):
+                self.info_text.tag_add(ans_norm, start_lab, f"{start_lab}+{len(ans_disp)}c")
+
+                
 
     def show_next(self):
         if self.idx < len(self.images_info) - 1:
