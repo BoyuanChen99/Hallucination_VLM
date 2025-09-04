@@ -1,6 +1,11 @@
 # Hallucination_VLM
 This repo stores the major code and results for the paper "..."
 
+
+
+
+
+
 ## Getting Datasets
 The following benchmarks/datasets are used in this project. Each section also provides a brief instruction on how to download the datasets. We put ALL dataset folders in a directory \textbf{on the top level}, named `data`. 
 
@@ -10,10 +15,27 @@ MSCOCO and COCO are the same thing. In research we usually write the former, emp
 
 We strongly recommend that you start by creating a data folder in a local disk with enough space, and download all the datasets there. The following instructions will assume that you have created a folder named `data` in your home directory.
 
-### POPE ([MSCOCO](https://cocodataset.org/#download), [GQA](https://cs.stanford.edu/people/dorarad/gqa/download.html), A-OKVQA)
+
+
+
+
+### [PhD](https://github.com/jiazhen-code/PhD) (CVPR'25)
+
+By far the biggest benchmark dataset on VLM hallucination, including 15,398 distinct images 102,564 VQA triplets. The questions are also very challenging. 
+
+
+
+
+
+
+
+### POPE ([MSCOCO](https://cocodataset.org/#download), [GQA](https://cs.stanford.edu/people/dorarad/gqa/download.html), [A-OKVQA](https://github.com/allenai/aokvqa)) (EMNLP'23)
 
 Polling-based Object Probing Evaluation collects images from the following classical datasets for research in computer vision (CV): MSCOCO, A-OKVQA, and GQA. 
-For each dataset, they collected images using three negative sample settings: random, popular, and adversarial. Each collection comprises 500 images alongside 6 questions per image. Each question is about the existence of an object (ie. "Is there a snowboard in the image?"), requiring a one-word Yes/No answer. The evaluation metrics include Accuracy, Precision, Recall, and F1 score. Following previous works, we run experiments and exhibit results on all questions for each collection from each dataset.
+
+For each dataset, they collected images using three negative sample settings: random, popular, and adversarial. Each collection comprises 500 images alongside 6 questions per image. Each question is about the existence of an object (ie. "Is there a snowboard in the image?"), requiring a one-word Yes/No answer. The evaluation metrics include Accuracy, Precision, Recall, and F1 score. 
+
+Note that this dataset is quite old, so several questions are very tricky (fixates on a very small area in the image), or have ambiguous definitions. 
 
 First, download MSCOCO_val2014 and GQA (make sure to click the box of the right-most choice, and download ALL images of 73.9G). A-OKVQA is a subset of MSCOCO, so there is no need to download it separately. 
 For your convenience, below is the command to download MSCOCO_val2014:
@@ -23,7 +45,9 @@ wget http://images.cocodataset.org/zips/val2014.zip
 
 
 
-### CHAIR (MSCOCO)
+
+
+### CHAIR (MSCOCO) (EMNLP'18)
 Caption Hallucination Assessment with Image Relevance (CHAIR) is a benchmark that assesses
 caption accuracy by comparing mentioned objects against ground-truth labels, with hallucinations defined as objects present in captions but absent from ground truth. Following established protocol, we evaluate on 500 randomly sampled images from MSCOCO_val2014 set, using the prompt "Please help me describe the image in
 detail" with maximum generation length of 512 tokens.
@@ -39,14 +63,13 @@ python chair_extract.py \
 
 
 ### HaloQuest
-The work is published via ECCV 2024 by Google. It uses self-generated original images from Midjourney to ask trickier questions. To prepare this dataset, clone their repo and follow their instructions. \
+The work is published via ECCV 2024 by Google. It uses self-generated original images from Midjourney to ask trickier questions. To prepare this dataset, clone their repo and follow their instructions. 
+
+Note that some images in this dataset are not downloable. The official team did not push updates to the repo to fix this issue.
+
 [paper](https://dl.acm.org/doi/10.1007/978-3-031-72980-5_17), [code](https://github.com/google/haloquest)
 
 
-
-### LLaVA-Bench
-
-### MME
 
 
 

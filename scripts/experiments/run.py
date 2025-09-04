@@ -14,8 +14,8 @@ args = argparse.ArgumentParser(description="Run InternVL3 for HaloQuest evaluati
 # VLM Model
 args.add_argument("--model", type=str, default="InternVL3", help="Model name")
 # Dataset and subgroup
-args.add_argument("--dataset", type=str, default="pope", help="The dataset to run test on")
-args.add_argument("--subset", type=str, default="coco", help="coco, gqa, aokvqa")
+args.add_argument("--dataset", type=str, default="phd", help="The dataset to run test on")
+args.add_argument("--subset", type=str, default="base", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
 args.add_argument("--subsplit", type=str, default="popular", help="popular, adversarial, random")
 # Hyperparameters
 args.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
@@ -31,7 +31,7 @@ def main(args):
     # Initialize VLM
     disable_huggingface_warnings()
     vlm = init_vlm(args.model)
-    # Input file and df
+    # Input file and df (calling load_dataframe in utils)
     dataset = args.dataset
     dataset_dir = "../../../data"
     df, col_prompt, col_image, image_dir = load_dataframe(dataset, dataset_dir, subset=args.subset, subsplit=args.subsplit)
@@ -44,10 +44,12 @@ def main(args):
     temp_str = f"temp{args.temperature}" if args.temperature > 0.0 else "greedy"
     output_temp_dir = os.path.join(output_model_dir, temp_str)
     os.makedirs(output_temp_dir, exist_ok=True)
-    if not "pope" in args.dataset:
-        output_file = os.path.join(output_data_dir, f"{args.model}.csv")
-    else:
+    if "pope" in args.dataset:
         output_file = os.path.join(output_temp_dir, f"{args.subset}_{args.model}_{args.subsplit}.csv")
+    elif "phd" in args.dataset:
+        output_file = os.path.join(output_temp_dir, f"{args.subset}_{args.model}.csv")
+    else:
+        output_file = os.path.join(output_data_dir, f"{args.model}.csv")
     # Output df
     if os.path.exists(output_file):
         df_output = pd.read_csv(output_file)

@@ -1,1 +1,5 @@
-Write a one-word response, "yes" or "no", without anything else to the following question. No capitalize and no period or any other marks (respond "yes" insead of "Yes."). The question is: {original_prompt}
+Write a one-word response, "yes" or "no", without anything else to the following question. No capitalize and no period or any other marks (respond "yes" insead of "Yes."). 
+
+Note that, the question might be very tricky... They might ask you an ambiguous concept, or requires you to spot a very small area on the image. So look closely on details and think carefully what the object the word is referring to, exactly. 
+
+The question is: {original_prompt}
