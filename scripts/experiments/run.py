@@ -70,16 +70,25 @@ def main(args):
                 continue
 
 
-        ### Step 1.2: Prepare the prompt and the image path
+        ### Step 1.2: Prepare the image path and the prompt
+        image_path = os.path.join(image_dir, row[col_image])
         prompt_dir = "../../prompts"
         if not args.prompt_file:
             prompt = row[col_prompt]
+        elif "phd" in args.dataset and "base" not in args.subset:
+            # Special case where context is needed, and thus template is needed
+            prompt = open(os.path.join(prompt_dir, "phd"), "r").read().strip()
+            prompt = prompt.replace("{context}", row["context"])
+            prompt = prompt.replace("{question}", row[col_prompt])
         else:
             prompt = open(os.path.join(prompt_dir, args.prompt_file), "r").read().strip()
             prompt = prompt.replace("{original_prompt}", row[col_prompt])
-        image_path = os.path.join(image_dir, row[col_image])
+        ### Step 1.2.1: Special case for PhD, as it is using both train and val of coco...
+        if "phd" in args.dataset:
+            if not os.path.exists(image_path):
+                image_path = image_path.replace("train", "val")
+                df_output.loc[df_output[col_image] == row[col_image], col_image] = image_path.split("/")[-1]
 
-        
         ### Step 1.3: Infer and process the response
         response = vlm.infer(
                         prompt=prompt, 

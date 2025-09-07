@@ -1,0 +1,7 @@
+You will be provided with a not-fully-accurate description of the image, and then asked a question about the image. Please ONLY refer to the image when answering the question. If the description is inaccurate, please ignore it and only refer to the image. If you are unsure about the answer, please say "I don't know". 
+
+### Here is the description: 
+{context}
+
+### Here is the question: 
+{question}

@@ -134,9 +134,11 @@ def load_dataframe(dataset_name, data_dir="../../../data", subset=None, subsplit
         col_image = "image"
         image_dir = os.path.join(data_dir, "coco", "val2014")
     elif "phd" in dataset_name:
-        data_json_path = os.path.join(data_dir, "phd", f"data.json")
-        data_content = json.load(open(data_json_path, "r"))
-        ### TODO
+        data_file = os.path.join(data_dir, "phd", f"{subset}.csv")
+        df = pd.read_csv(data_file)
+        col_prompt = "question"
+        col_image = "image"
+        image_dir = os.path.join(data_dir, "coco", "train2014")
     return df, col_prompt, col_image, image_dir
 
 

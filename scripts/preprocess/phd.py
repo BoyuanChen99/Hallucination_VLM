@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 
+
 def main():
     all_subsets = ["base", "icc", "iac", "ccs"]
     for subset in all_subsets:
@@ -57,7 +58,8 @@ def main():
 
             # Append the row
             rows = []
-            image_id = "COCO_val2014_"+item.get("image_id") if not "ccs" in subset else item.get("image_id")
+            image_id = item.get("image_id") if not "ccs" in subset else item.get("image_id")
+            image_id = "COCO_train2014_" + image_id + ".jpg"
             rows.append({
                 "Index": 2*i+1,
                 "image_idx": image_idx,
