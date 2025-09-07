@@ -15,14 +15,13 @@ args = argparse.ArgumentParser(description="Run InternVL3 for HaloQuest evaluati
 args.add_argument("--model", type=str, default="InternVL3", help="Model name")
 # Dataset and subgroup
 args.add_argument("--dataset", type=str, default="phd", help="The dataset to run test on")
+args.add_argument("--prompt_file", type=str, default="phd.txt", help="Path to the prompt file other than the benchmark's prompt")
 args.add_argument("--subset", type=str, default="base", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
 args.add_argument("--subsplit", type=str, default="popular", help="popular, adversarial, random")
 # Hyperparameters
 args.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
 args.add_argument("--top_k", type=int, default=50, help="Top-k sampling")
 args.add_argument("--top_p", type=float, default=0.95, help="Top-p (nucleus) sampling")
-# Context engineering
-args.add_argument("--prompt_file", type=str, default="pope.txt", help="Path to the prompt file other than the benchmark's prompt")
 FLAGS = args.parse_args()
 
 
@@ -75,10 +74,13 @@ def main(args):
         prompt_dir = "../../prompts"
         if not args.prompt_file:
             prompt = row[col_prompt]
-        elif "phd" in args.dataset and "base" not in args.subset:
+        elif "phd" in args.dataset:
             # Special case where context is needed, and thus template is needed
-            prompt = open(os.path.join(prompt_dir, "phd"), "r").read().strip()
-            prompt = prompt.replace("{context}", row["context"])
+            prompt = open(os.path.join(prompt_dir, args.prompt_file), "r").read().strip()
+            if type(row["context"]) is str:
+                prompt = prompt.replace("{context}", row["context"])
+            else:
+                prompt = prompt.replace("{context}", "N/A")
             prompt = prompt.replace("{question}", row[col_prompt])
         else:
             prompt = open(os.path.join(prompt_dir, args.prompt_file), "r").read().strip()
@@ -87,7 +89,7 @@ def main(args):
         if "phd" in args.dataset:
             if not os.path.exists(image_path):
                 image_path = image_path.replace("train", "val")
-                df_output.loc[df_output[col_image] == row[col_image], col_image] = image_path.split("/")[-1]
+                row[col_image] = row[col_image].replace("train", "val")
 
         ### Step 1.3: Infer and process the response
         response = vlm.infer(
@@ -96,7 +98,8 @@ def main(args):
                         max_new_tokens=512,
                         temperature=args.temperature,
                     )
-        response = process_response(response, args.dataset)
+        if "pope" in args.dataset:
+            response = process_response(response, args.dataset)
 
 
         ### Step 1.4: Concatenate to the end of df_output

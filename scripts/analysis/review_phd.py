@@ -1,9 +1,13 @@
 import argparse
 import os
-import json
 from PIL import Image
 from gui import ImageViewer
 import pandas as pd
+import sys
+
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+sys.path.append(os.path.abspath(os.path.join(root_dir, 'src')))
+from utils import process_response
 
 
 def parse_args():
@@ -30,49 +34,43 @@ def main(args):
         temperature = str(args.temperature)
         if temperature.endswith(".0"):
             temperature = "temp"+temperature[:-2]
-    # Load output
-    output_file_jsonl = os.path.join(args.output_folder, args.benchmark, args.model_name, temperature, f"{args.subset}_pope_{args.subsplit}_{args.model_name}.jsonl")
-    output_file_csv = os.path.join(args.output_folder, args.benchmark, args.model_name, temperature, f"{args.subset}_{args.model_name}_{args.subsplit}.csv")
-    print(output_file_csv)
-    if os.path.exists(output_file_jsonl):
-        with open(output_file_jsonl, "r") as f:
-            results = [json.loads(line) for line in f.readlines()]
-        ### Step 0.2: Define, and read the answers file
-        answers_file = os.path.join(args.data_folder, args.benchmark, args.subset, f"{args.subset}_{args.benchmark.lower()}_{args.subsplit}.json")
-        if not os.path.exists(answers_file):
-            print(f"Answers file {answers_file} does not exist. Please check the path.")
-            return
-        with open(answers_file, "r") as f:
-            answers = [json.loads(line) for line in f]
-    elif os.path.exists(output_file_csv):
-        with open(output_file_csv, "r") as f:
-            df = pd.read_csv(f)
-            answers = df.to_dict(orient="records")
-            df = df.rename(columns={"text": "prompt"})
-            df = df.rename(columns={"response": "text"})
-            results = df.to_dict(orient="records")
-
-    ### Step 0.3: Define image folder
-    args.subset = args.subset.lower()
-    if "gqa" in args.subset:
-        image_dir = os.path.join(args.data_folder, args.subset, "allImages", "images")
-    elif "coco" in args.subset or "aokvqa" in args.subset:
-        image_dir = os.path.join(args.data_folder, args.subset, args.subfolder)
+    # Load output file
+    output_file_csv = os.path.join(args.output_folder, args.benchmark, args.model_name, temperature, f"{args.subset}_{args.model_name}.csv")
+    with open(output_file_csv, "r") as f:
+        df = pd.read_csv(f)
+        answers = df.to_dict(orient="records")
+        results = df.to_dict(orient="records")
+    
+    ### Step 0.2: Get the necessary column names right
+    col_prompt = "question"
+    col_question_id = "idx_question"
+    col_response = "response"
+    col_image = "image"
+    col_label = "label"
 
 
     ### Step 1: Loop through the images in the GUI
     images_info = []
     for result in results:
-        question_id = result["question_id"]
-        prompt = result["prompt"]
-        model_output = result["text"].lower().strip()
+        question_id = result[col_question_id]
+        prompt = result[col_prompt]
+        model_output = result[col_response].lower().strip()
         model_id = result.get("model_id", args.model_name)
-        image_file = result["image"]
+        image_file = result[col_image]
         answer = next(
-            (a["label"] for a in answers 
-            if a["question_id"] == question_id and a["text"] == prompt and a["image"] == image_file),
+            (a[col_label] for a in answers 
+            if a[col_question_id] == question_id and a[col_prompt] == prompt and a[col_image] == image_file),
             "NOT FOUND"
         )
+
+        ### Step 1.1: Process model response on-site
+        model_output = process_response(model_output, args.benchmark)
+
+        ### Step 1.2: Get the image
+        if "train" in image_file:
+            image_dir = os.path.join(args.data_folder, "coco", "train2014")
+        elif "val" in image_file:
+            image_dir = os.path.join(args.data_folder, "coco", "val2014")
         image_path = os.path.join(image_dir, image_file)
         if not os.path.exists(image_path):
             print(f"Image not found: {image_path}")
@@ -89,7 +87,7 @@ def main(args):
         })
 
     if images_info:
-        app = ImageViewer(images_info, title=f"POPE {args.subset} {args.subsplit} {args.model_name}, t={args.temperature}")
+        app = ImageViewer(images_info, title=f"Phd {args.subset} {args.model_name}, t={args.temperature}")
         app.mainloop()
     else:
         print("No images to display.")

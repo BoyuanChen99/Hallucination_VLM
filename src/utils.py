@@ -145,7 +145,13 @@ def load_dataframe(dataset_name, data_dir="../../../data", subset=None, subsplit
 def process_response(response, benchmark):
     if "pope" in benchmark:
         response = ''.join(c for c in response if c.isalpha() or c.isspace())
-        response = response.lower()
+        response = response.upper().strip()
+    elif "phd" in benchmark:
+        response = response.lower().strip()
+        if "my final answer is:" in response:
+            response = response.split("my final answer is:")[-1]
+        response = ''.join(c for c in response if c.isalpha() or c.isspace())
+        response = response.upper().strip()
     return response
 
 

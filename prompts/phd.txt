@@ -1,4 +1,9 @@
-You will be provided with a not-fully-accurate description of the image, and then asked a question about the image. Please ONLY refer to the image when answering the question. If the description is inaccurate, please ignore it and only refer to the image. If you are unsure about the answer, please say "I don't know". 
+### Rules: 
+You will be provided with a not-fully-accurate description of the image, and then asked a question about the image. Please ONLY refer to the image when answering the question. If the description is inaccurate, please ignore it and only refer to the image. 
+
+Note that before you give your final answer, give one or two sentences explain where exactly in the image you found the answer, and optionally your reasoning. Don't reason too much, as we only have limited space for your output. Don't reason or describe anything that is not related to the question. ONLY DISCUSS THE QUESTION. 
+
+Then, start a new line, and say "My final answer is: <one boolean word>", where <one boolean word> is either "YES" or "NO" (in all caps, just one word). Note that it has to be one boolean word. If you put multiple words, we cannot process it. In very rare cases, if you are really unsure about the answer, please say "My final answer is: UNSURE". 
 
 ### Here is the description: 
 {context}
