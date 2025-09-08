@@ -59,7 +59,10 @@ def main():
             # Append the row
             rows = []
             image_id = item.get("image_id") if not "ccs" in subset else item.get("image_id")
-            image_id = "COCO_train2014_" + image_id + ".jpg"
+            if "ccs" in subset:
+                image_id = image_id + ".png"
+            else:
+                image_id = "COCO_train2014_" + image_id + ".jpg"
             rows.append({
                 "Index": 2*i+1,
                 "image_idx": image_idx,

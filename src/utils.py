@@ -138,7 +138,10 @@ def load_dataframe(dataset_name, data_dir="../../../data", subset=None, subsplit
         df = pd.read_csv(data_file)
         col_prompt = "question"
         col_image = "image"
-        image_dir = os.path.join(data_dir, "coco", "train2014")
+        if "ccs" in subset:
+            image_dir = os.path.join(data_dir, "coco", "CCS_images")
+        else:
+            image_dir = os.path.join(data_dir, "coco", "train2014")
     return df, col_prompt, col_image, image_dir
 
 
@@ -155,7 +158,7 @@ def process_response(response, benchmark):
     return response
 
 
-def concatenate_response(response, row, df_output, col_image):
+def concatenate_response(response, row, df_output, col_image, processed_response=""):
     # Ensure helper columns exist (nullable integer dtype)
     for c in ("idx_image", "idx_question"):
         if c not in df_output.columns:
@@ -169,6 +172,7 @@ def concatenate_response(response, row, df_output, col_image):
     # Add response
     row = row.copy()
     row["response"] = response.replace("\n", "\\n")
+    row["processed_response"] = processed_response.replace("\n", "\\n")
     if len(df_output) == 0:
         # start counters
         row["idx_image"] = 0

@@ -17,7 +17,7 @@ def parse_args():
     argparser.add_argument("--benchmark", type=str, default="phd", help="The benchmark of the experiment. eg: pope, chair, etc.")
     ### Hoper parameters
     argparser.add_argument("--temperature", type=float, default="0.0", help="The temperature used for inference.")
-    argparser.add_argument("--subset", type=str, default="base", help="Subset of the POPE dataset to use. The three options are: coco, aokvqa, and gqa.")
+    argparser.add_argument("--subset", type=str, default="ccs", help="Subset of the POPE dataset to use. The three options are: coco, aokvqa, and gqa.")
     ### Fixed directories
     argparser.add_argument("--data_folder", type=str, default="../../../data", help="Path to the data folder containing POPE dataset.")
     argparser.add_argument("--subfolder", type=str, default="train2014", help="Only relevant for coco subset.")
@@ -71,6 +71,8 @@ def main(args):
             image_dir = os.path.join(args.data_folder, "coco", "train2014")
         elif "val" in image_file:
             image_dir = os.path.join(args.data_folder, "coco", "val2014")
+        elif "ccs" in args.subset:
+            image_dir = os.path.join(args.data_folder, "coco", "CCS_images")
         image_path = os.path.join(image_dir, image_file)
         if not os.path.exists(image_path):
             print(f"Image not found: {image_path}")
@@ -84,6 +86,7 @@ def main(args):
             "image_file": image_file,
             "answer": answer,
             "image": image,
+            "original_response": result[col_response]
         })
 
     if images_info:

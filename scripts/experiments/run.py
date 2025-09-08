@@ -16,7 +16,7 @@ args.add_argument("--model", type=str, default="InternVL3", help="Model name")
 # Dataset and subgroup
 args.add_argument("--dataset", type=str, default="phd", help="The dataset to run test on")
 args.add_argument("--prompt_file", type=str, default="phd.txt", help="Path to the prompt file other than the benchmark's prompt")
-args.add_argument("--subset", type=str, default="base", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
+args.add_argument("--subset", type=str, default="ccs", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
 args.add_argument("--subsplit", type=str, default="popular", help="popular, adversarial, random")
 # Hyperparameters
 args.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
@@ -87,7 +87,7 @@ def main(args):
             prompt = prompt.replace("{original_prompt}", row[col_prompt])
         ### Step 1.2.1: Special case for PhD, as it is using both train and val of coco...
         if "phd" in args.dataset:
-            if not os.path.exists(image_path):
+            if not "ccs" in args.subset and not os.path.exists(image_path):
                 image_path = image_path.replace("train", "val")
                 row[col_image] = row[col_image].replace("train", "val")
 
@@ -98,12 +98,11 @@ def main(args):
                         max_new_tokens=512,
                         temperature=args.temperature,
                     )
-        if "pope" in args.dataset:
-            response = process_response(response, args.dataset)
 
 
         ### Step 1.4: Concatenate to the end of df_output
-        df_output = concatenate_response(response, row, df_output, col_image)
+        processed_response = process_response(response, args.dataset)
+        df_output = concatenate_response(response, row, df_output, col_image, processed_response=processed_response)
 
 
         ### Step 1.5: Write to the output path

@@ -1,4 +1,3 @@
-from logging import info
 import os
 from PIL import Image, ImageTk
 import tkinter as tk
@@ -101,6 +100,16 @@ class ImageViewer(tk.Tk):
 
         self.info_text.insert(tk.END, f"{model_out_disp}\n", "bold")
         end_out = self.info_text.index(tk.INSERT)
+
+        # --- Show original_response if available ---
+        if "original_response" in info and info["original_response"]:
+            self.info_text.insert(tk.END, "Original Response: ")
+            start_orig = self.info_text.index(tk.INSERT)
+
+            orig_raw = str(info['original_response']).strip()
+            self.info_text.insert(tk.END, f"{orig_raw}\n")
+            end_orig = self.info_text.index(tk.INSERT)
+
 
         # Label (if shown)
         if self.display_answer:
