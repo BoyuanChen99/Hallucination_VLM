@@ -16,12 +16,13 @@ module purge
 singularity exec \
   --nv \
   --bind /scratch \
-  --overlay ../../../../data_hallu.ext3:ro \
+  --overlay ../../../data_hallu.ext3:ro \
   /share/apps/admin/singularity-images/centos-8.2.2004.sif \
   bash -lc '
     # Load Conda and activate env (from your home, which is mounted in the container)
     source ~/.bashrc
-    conda activate cipherword
+    conda activate vlm
+    cd Hallucination_VLM/scripts/experiments
 
     # Hugging Face cache (ensure this directory exists and is writable on the host)
     export HF_HOME="/scratch/bc3194/huggingface_cache"
