@@ -34,16 +34,27 @@ class InternVL3(VLM):
         self.IMAGENET_MEAN = (0.485, 0.456, 0.406)
         self.IMAGENET_STD = (0.229, 0.224, 0.225)
         self.path = model
-        self.device_map = self.split_model(self.path)
-        self.model = AutoModel.from_pretrained(
-                        self.path,
-                        torch_dtype=torch_dtype,
-                        load_in_8bit=load_in_8bit,
-                        use_flash_attn=use_flash_attn,
-                        low_cpu_mem_usage=True,
-                        trust_remote_code=True,
-                        device_map=self.device_map
-                    ).eval()
+        # Detect how many gpus are available. If there are more than 1, we will split the model evenly.
+        if torch.cuda.device_count() > 1:
+            self.device_map = self.split_model(self.path)
+            self.model = AutoModel.from_pretrained(
+                            self.path,
+                            torch_dtype=torch_dtype,
+                            load_in_8bit=load_in_8bit,
+                            use_flash_attn=use_flash_attn,
+                            low_cpu_mem_usage=True,
+                            trust_remote_code=True,
+                            device_map=self.device_map
+                        ).eval()
+        else:
+            self.model = AutoModel.from_pretrained(
+                            self.path,
+                            torch_dtype=torch_dtype,
+                            load_in_8bit=load_in_8bit,
+                            use_flash_attn=use_flash_attn,
+                            low_cpu_mem_usage=True,
+                            trust_remote_code=True
+                        ).eval().cuda()
         self.tokenizer = AutoTokenizer.from_pretrained(
                         self.path, 
                         trust_remote_code=True, 
