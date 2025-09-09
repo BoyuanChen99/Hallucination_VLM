@@ -1,5 +1,5 @@
 #!/bin/bash
-##SBATCH -q ebrainccs
+#SBATCH -q ebrainccs
 #SBATCH -p nvidia
 #SBATCH -C 80g
 #SBATCH --nodes=1
@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:a100:1
 #SBATCH --time=71:59:59
 #SBATCH --mem=32GB
-#SBATCH --job-name=IT-icc
+#SBATCH --job-name=IT-iac
 
 module purge
 
@@ -28,5 +28,5 @@ singularity exec \
     export HF_HOME="/scratch/bc3194/huggingface_cache"
 
     # Run your script
-    python -u run.py --subset="icc"
+    python -u run.py --subset="iac"
   '
