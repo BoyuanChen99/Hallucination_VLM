@@ -1,8 +1,3 @@
-"""
-A standard inference script for InternVL-3-8B. This model is only supported via custom code.
-The code is adapted from the official huggingface page: https://huggingface.co/OpenGVLab/InternVL3-8B
-"""
-
 import math
 import numpy as np
 import torch
@@ -10,13 +5,12 @@ import torchvision.transforms as T
 from decord import VideoReader, cpu
 from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
-from transformers import AutoModel, AutoTokenizer, AutoConfig
+from transformers import AutoModel, AutoTokenizer, AutoConfig, AutoModelForCausalLM
 
 
 default_response = "[No response generated]"
 
-### ========== Model Classes ===========
-# Abstract class of all VLMs
+### ========== Abstract Model Class ===========
 class VLM:
     def __init__(self):
         pass
@@ -25,11 +19,60 @@ class VLM:
         raise NotImplementedError
 
 
-# ===== InternVL3-8B =====
-# This code is adapted from the official team's code on huggingface: https://huggingface.co/OpenGVLab/InternVL3-8B
+
+# ===== Ovis2-8/16B =====
+# This code is adapted from the official team's code on huggingface: https://huggingface.co/AIDC-AI/Ovis2-8B
+class Ovis2(VLM):
+    def __init__(self, model="AIDC-AI/Ovis2-8B", torch_dtype=torch.bfloat16):
+        self.path = model
+        self.model = AutoModelForCausalLM.from_pretrained(
+                        self.path,
+                        torch_dtype=torch_dtype,
+                        low_cpu_mem_usage=True,
+                        trust_remote_code=True,
+                        device_map="auto"
+                    ).eval()
+        self.text_tokenizer = self.model.get_text_tokenizer()
+        self.visual_tokenizer = self.model.get_visual_tokenizer()
+        self.device = self.model.device
+    
+    def infer(self, prompt, image_path=None, video=None, max_new_tokens=512, temperature=0.0, max_partition=12):
+        response = default_response
+        # 1-image 1-round
+        if image_path is not None and video is None:
+            image = Image.open(image_path).convert('RGB')
+            images = [image]
+            query = f'<image>\n{prompt}'
+            prompt, input_ids, pixel_values = self.model.preprocess_inputs(query, images, max_partition=max_partition)
+            attention_mask = torch.ne(input_ids, self.text_tokenizer.pad_token_id)
+            input_ids = input_ids.unsqueeze(0).to(device=self.device)
+            attention_mask = attention_mask.unsqueeze(0).to(device=self.device)
+            if pixel_values is not None:
+                pixel_values = pixel_values.to(dtype=self.visual_tokenizer.dtype, device=self.visual_tokenizer.device)
+            pixel_values = [pixel_values]
+            with torch.inference_mode():
+                gen_kwargs = dict(
+                    max_new_tokens=max_new_tokens,
+                    do_sample=(temperature > 0),
+                    top_p=None,
+                    top_k=None,
+                    temperature=temperature if temperature > 0 else None,
+                    repetition_penalty=None,
+                    eos_token_id=self.model.generation_config.eos_token_id,
+                    pad_token_id=self.text_tokenizer.pad_token_id,
+                    use_cache=True
+                )
+                output_ids = self.model.generate(input_ids, pixel_values=pixel_values, attention_mask=attention_mask, **gen_kwargs)[0]
+                response = self.text_tokenizer.decode(output_ids, skip_special_tokens=True)
+        return response
+
+
+
+# ===== InternVL3-8/14B =====
+# This code is adapted from the official team's code on huggingface: https://huggingface.co/OpenGVLab/InternVL3-8B. Note that for this model, "max_num" means "max_partition".
 class InternVL3(VLM):
     ### ========== Initialization ========== ###
-    def __init__(self, model='OpenGVLab/InternVL3-8B', torch_dtype=torch.bfloat16, load_in_8bit=False, use_flash_attn=True):
+    def __init__(self, model="OpenGVLab/InternVL3-8B", torch_dtype=torch.bfloat16, load_in_8bit=False, use_flash_attn=True):
         # Note that the image dimension must be fixed. The original code uses Imagenet settings by default. 
         self.IMAGENET_MEAN = (0.485, 0.456, 0.406)
         self.IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -88,6 +131,32 @@ class InternVL3(VLM):
                     best_ratio = ratio
         return best_ratio
 
+    ### A helper function used for any AutoModel that runs on multiple gpus. The reason for writing the code this way is to avoid errors that occur during multi-GPU inference due to tensors not being on the same device. By ensuring that the first and last layers of the large language model (LLM) are on the same device, we prevent such errors. The returned output is a dictionary that maps layer names to device IDs.
+    def split_model(self, model_name):
+        device_map = {}
+        world_size = torch.cuda.device_count()
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        num_layers = config.llm_config.num_hidden_layers
+        # Since the first GPU will be used for ViT, treat it as half a GPU.
+        num_layers_per_gpu = math.ceil(num_layers / (world_size - 0.5))
+        num_layers_per_gpu = [num_layers_per_gpu] * world_size
+        num_layers_per_gpu[0] = math.ceil(num_layers_per_gpu[0] * 0.5)
+        layer_cnt = 0
+        for i, num_layer in enumerate(num_layers_per_gpu):
+            for j in range(num_layer):
+                device_map[f'language_model.model.layers.{layer_cnt}'] = i
+                layer_cnt += 1
+        device_map['vision_model'] = 0
+        device_map['mlp1'] = 0
+        device_map['language_model.model.tok_embeddings'] = 0
+        device_map['language_model.model.embed_tokens'] = 0
+        device_map['language_model.output'] = 0
+        device_map['language_model.model.norm'] = 0
+        device_map['language_model.model.rotary_emb'] = 0
+        device_map['language_model.lm_head'] = 0
+        device_map[f'language_model.model.layers.{num_layers - 1}'] = 0
+        return device_map
+
     def dynamic_preprocess(self, image, min_num=1, max_num=12, image_size=448, use_thumbnail=False):
         orig_width, orig_height = image.size
         aspect_ratio = orig_width / orig_height
@@ -130,32 +199,6 @@ class InternVL3(VLM):
         pixel_values = torch.stack(pixel_values)
         return pixel_values
 
-    # Used for multiple gpus. The reason for writing the code this way is to avoid errors that occur during multi-GPU inference due to tensors not being on the same device. By ensuring that the first and last layers of the large language model (LLM) are on the same device, we prevent such errors.
-    def split_model(self, model_name):
-        device_map = {}
-        world_size = torch.cuda.device_count()
-        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-        num_layers = config.llm_config.num_hidden_layers
-        # Since the first GPU will be used for ViT, treat it as half a GPU.
-        num_layers_per_gpu = math.ceil(num_layers / (world_size - 0.5))
-        num_layers_per_gpu = [num_layers_per_gpu] * world_size
-        num_layers_per_gpu[0] = math.ceil(num_layers_per_gpu[0] * 0.5)
-        layer_cnt = 0
-        for i, num_layer in enumerate(num_layers_per_gpu):
-            for j in range(num_layer):
-                device_map[f'language_model.model.layers.{layer_cnt}'] = i
-                layer_cnt += 1
-        device_map['vision_model'] = 0
-        device_map['mlp1'] = 0
-        device_map['language_model.model.tok_embeddings'] = 0
-        device_map['language_model.model.embed_tokens'] = 0
-        device_map['language_model.output'] = 0
-        device_map['language_model.model.norm'] = 0
-        device_map['language_model.model.rotary_emb'] = 0
-        device_map['language_model.lm_head'] = 0
-        device_map[f'language_model.model.layers.{num_layers - 1}'] = 0
-        return device_map
-
     ### ========== Video-related functions ========== ###
     # Video multi-round conversation
     def get_index(self, bound, fps, max_frame, first_idx=0, num_segments=32):
@@ -191,6 +234,7 @@ class InternVL3(VLM):
 
     def infer(self, prompt, image_path=None, video=None, max_new_tokens=512, temperature=0.0, multi_rounds=False):
         response = default_response
+        # 1-image 1-round
         if video is None and image_path is not None and not multi_rounds:
             pixel_values = self.load_image(image_path, max_num=12).to(torch.bfloat16).to(self.device)
             question = f"<image>\n{prompt}"
@@ -198,7 +242,6 @@ class InternVL3(VLM):
                 generation_config = dict(max_new_tokens=max_new_tokens, do_sample=True, temperature=temperature)
             else:
                 generation_config = dict(max_new_tokens=max_new_tokens, do_sample=False)
-            # Run the infer
             response = self.model.chat(self.tokenizer, pixel_values, question, generation_config)
         return response
 
@@ -206,5 +249,7 @@ class InternVL3(VLM):
 ### ========== 
 def init_vlm(model_name):
     if "internvl3" in model_name.lower():
-        return InternVL3()
+        return InternVL3(model=model_name)
+    elif "ovis2" in model_name.lower():
+        return Ovis2(model=model_name)
     raise ValueError(f"Unknown model name: {model_name}")

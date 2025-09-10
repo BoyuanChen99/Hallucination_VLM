@@ -2,13 +2,17 @@
 # pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
 # Many other dependencies will be installed automatically. 
 
-# Then, you should install flash-attn 2.6.0 from source, and compile with gcc. Note that the gcc version should match your cuda version. For example, for CUDA 12.4, you can use gcc-11.
+# Then, you should install flash-attn with the following command: pip install flash-attn==2.7.0.post2 --no-build-isolation. This might take a while, so please be patient and let it finish. 
 
 torch==2.6.0
 torchvision==0.21.0
 transformers==4.52.4
 accelerate==1.7.0
+tiktoken==0.11.0
 datasets
 tqdm
 decord
 pillow
+einops
+timm
+blobfile

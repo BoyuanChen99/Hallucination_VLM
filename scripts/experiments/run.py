@@ -16,10 +16,10 @@ args.add_argument("--model", type=str, default="InternVL3", help="Model name")
 # Dataset and subgroup
 args.add_argument("--dataset", type=str, default="phd", help="The dataset to run test on")
 args.add_argument("--prompt_file", type=str, default="phd.txt", help="Path to the prompt file other than the benchmark's prompt")
-args.add_argument("--subset", type=str, default="ccs", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
-args.add_argument("--subsplit", type=str, default="popular", help="popular, adversarial, random")
+args.add_argument("--subset", type=str, default="base", help="pope: {gqa, aokvqa, coco}; phd: {base, icc, iac(sec), ccs}")
+args.add_argument("--subsplit", type=str, default="popular", help="Only used for POPE dataset. Choices are: {popular, adversarial, random}")
 # Hyperparameters
-args.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
+args.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature. When set to 0.0 the model will do greedy decoding and ignore the other parameters. ")
 args.add_argument("--top_k", type=int, default=50, help="Top-k sampling")
 args.add_argument("--top_p", type=float, default=0.95, help="Top-p (nucleus) sampling")
 FLAGS = args.parse_args()
@@ -29,7 +29,9 @@ def main(args):
     ### Step 0: Initialize the vlm, the dataset file, and the output file
     # Initialize VLM
     disable_huggingface_warnings()
+    print(f"Initializing {args.model}...")
     vlm = init_vlm(args.model)
+    print(f"{args.model} VLM loaded.")
     # Input file and df (calling load_dataframe in utils)
     dataset = args.dataset
     dataset_dir = "../../../data"
@@ -90,6 +92,7 @@ def main(args):
             if not "ccs" in args.subset and not os.path.exists(image_path):
                 image_path = image_path.replace("train", "val")
                 row[col_image] = row[col_image].replace("train", "val")
+
 
         ### Step 1.3: Infer and process the response
         response = vlm.infer(

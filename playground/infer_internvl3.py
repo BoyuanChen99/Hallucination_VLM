@@ -1,6 +1,6 @@
 """
 A standard inference script for InternVL-3-8B. This model is only supported via custom code.
-The code is adapted from the official huggingface page: https://huggingface.co/OpenGVLab/InternVL3-8B
+The code is adapted from the official huggingface page: https://huggingface.co/OpenGVLab/InternVL3-8B, and is currently stored in `src/vlms.py`.
 This model is the TOP1 of huggingface vlm leaderboard by August 12th, 2025. 
 """
 
@@ -11,6 +11,7 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.append(os.path.abspath(os.path.join(root_dir, 'src')))
 
 from vlms import InternVL3
+from utils import disable_huggingface_warnings
 
 
 def main():
@@ -18,9 +19,10 @@ def main():
     # Note that while the size of the model itself isn't large, it takes a lot of memory to process image data.
     # If you set `load_in_8bit=True`, you will need two 80GB GPUs.
     # If you set `load_in_8bit=False`, you will need about 14G of VRAM to process an image.
+    disable_huggingface_warnings()
     internvlm = InternVL3(torch_dtype=torch.bfloat16, load_in_8bit=True, use_flash_attn=True)
-    image_1_path = "../datasets/MSCOCO/examples/000000055857.jpg"
-    image_2_path = "../datasets/MSCOCO/examples/000000574769.jpg"
+    image_1_path = "../../data/coco/val2014/COCO_val2014_000000000073.jpg"
+    image_2_path = "../../data/coco/val2014/COCO_val2014_000000000074.jpg"
 
 
     ### Step 1: Set the max number of tiles in `max_num`
