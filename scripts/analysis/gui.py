@@ -1,17 +1,22 @@
 import os
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageGrab
 import tkinter as tk
 import tkinter.ttk as ttk
 
 
 class ImageViewer(tk.Tk):
-    def __init__(self, images_info, title="", size="3000x2600", benchmark="POPE"):
+    def __init__(self, images_info, title="", size="3000x2600", benchmark="POPE", save_mode=False):
         super().__init__()
         self.title(title)
         self.geometry(size)
         self.images_info = images_info
         self.idx = 0
         self.benchmark = benchmark
+        self.save_mode = save_mode                       # <-- store flag
+        self.screens_dir = os.path.join(os.getcwd(), "gui_screenshots")
+        if self.save_mode:
+            os.makedirs(self.screens_dir, exist_ok=True) # <-- ensure folder
+
         benchmarks_bool = ["pope"]
         benchmarks_with_answer = ["pope"]
         self.display_correctness = (benchmark.lower() in benchmarks_bool)
@@ -19,6 +24,9 @@ class ImageViewer(tk.Tk):
 
         self.img_label = tk.Label(self)
         self.img_label.pack(pady=50)
+
+        self.task_label = tk.Label(self, font=("Helvetica", 24))
+        self.task_label.pack(pady=20)
 
         main_font_size = 32
         self.info_text = tk.Text(self, height=8, wrap=tk.WORD, font=("Helvetica", main_font_size), padx=40, pady=40)
@@ -45,6 +53,49 @@ class ImageViewer(tk.Tk):
 
         self.show_image()
 
+
+    def save_current_gui(self):
+        """Capture the full app window and save with the required filename format."""
+        if not self.images_info:
+            return
+
+        info = self.images_info[self.idx]
+
+        # Determine C/F using model_output vs answer (case-insensitive)
+        pred = str(info.get('model_output', '')).strip().lower()
+        ans = str(info.get('answer', '')).strip().lower()
+        correctness_char = 'C' if pred == ans and ans != '' else 'F'
+
+        # Extract base image name (without extension)
+        image_file = os.path.basename(str(info.get('image_file', 'unknown')))
+        image_name, _ = os.path.splitext(image_file)
+
+        # Map label (answer) YES/NO -> 1/0; default to 0 when not binary
+        if ans == 'yes':
+            q_bit = 1
+        elif ans == 'no':
+            q_bit = 0
+        else:
+            q_bit = 0  # fallback if label isn't strictly yes/no
+
+        filename = f"{image_name}_Q{q_bit}_{correctness_char}.png"
+        out_path = os.path.join(self.screens_dir, filename)
+
+        # Compute window bbox in screen coords
+        self.update_idletasks()
+        x = self.winfo_rootx()
+        y = self.winfo_rooty()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        bbox = (x, y, x + w, y + h)
+
+        try:
+            snap = ImageGrab.grab(bbox=bbox)
+            snap.save(out_path)
+            # Optional: print to console for debugging
+            print(f"[saved] {out_path}")
+        except Exception as e:
+            print(f"[screenshot error] {e}")
 
     def show_image(self):
         if self.idx >= len(self.images_info):
@@ -128,6 +179,7 @@ class ImageViewer(tk.Tk):
             f"\nImage File: {info['image_file']}\n"
             f"Question ID: {info['question_id']}\n"
             f"Model ID: {info['model_id']}\n"
+            f"Task: {info.get('task', 'N/A')}"
         )
 
         # Apply color tags only to the exact spans if they are YES/NO
@@ -137,9 +189,12 @@ class ImageViewer(tk.Tk):
             if self.display_answer and ans_norm in ("yes", "no"):
                 self.info_text.tag_add(ans_norm, start_lab, f"{start_lab}+{len(ans_disp)}c")
 
-                
 
     def show_next(self):
+        # Save the current GUI page BEFORE moving on
+        if self.save_mode:
+            self.save_current_gui()
+
         if self.idx < len(self.images_info) - 1:
             self.idx += 1
             self.show_image()

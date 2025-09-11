@@ -17,13 +17,13 @@ def parse_args():
     argparser.add_argument("--benchmark", type=str, default="phd", help="The benchmark of the experiment. eg: pope, chair, etc.")
     ### Hoper parameters
     argparser.add_argument("--temperature", type=float, default="0.0", help="The temperature used for inference.")
-    argparser.add_argument("--subset", type=str, default="base", help="Subset of the POPE dataset to use. The three options are: coco, aokvqa, and gqa.")
+    argparser.add_argument("--subset", type=str, default="ccs", help="Subset of the POPE dataset to use. The three options are: coco, aokvqa, and gqa.")
     ### Fixed directories
     argparser.add_argument("--data_folder", type=str, default="../../../data", help="Path to the data folder containing POPE dataset.")
     argparser.add_argument("--subfolder", type=str, default="train2014", help="Only relevant for coco subset.")
     argparser.add_argument("--output_folder", type=str, default="../../results", help="Folder to save the results.")
-    ### If viewed on other machines, we can set size...
-    argparser.add_argument("--view_on_mac", action="store_true", help="If set, the GUI will be optimized for Mac screen size.")
+    ### Save images on clicking "next"
+    argparser.add_argument("--save_mode", type=bool, default=True, help="Whether to save the images when clicking 'next'.")
     return argparser.parse_args()
 
 
@@ -50,6 +50,7 @@ def main(args):
     col_image = "image"
     col_label = "label"
     col_processed = "processed_response"
+    col_task = "task"
 
     ### Step 0.3: Calculate correctness rate
     correct = sum(1 for r in results if r[col_processed].strip().lower() == r[col_label].strip().lower())
@@ -94,11 +95,12 @@ def main(args):
             "image_file": image_file,
             "answer": answer,
             "image": image,
-            "original_response": result[col_response]
+            "original_response": result[col_response],
+            "task": result.get(col_task, "N/A"),
         })
 
     if images_info:
-        app = ImageViewer(images_info, title=f"Phd {args.subset} {args.model_name}, t={args.temperature}")
+        app = ImageViewer(images_info, title=f"Phd {args.subset} {args.model_name}, t={args.temperature}", save_mode=True)
         app.mainloop()
     else:
         print("No images to display.")
